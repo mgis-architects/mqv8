@@ -19,11 +19,11 @@ prog=createMQv8_FP0006Zip
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 SCR=$(basename "${BASH_SOURCE[0]}")
 THIS_SCRIPT=$DIR/$SCR
-#INIFILE=$1
 LOG_DIR=/var/log/mqInstaller
+INI_FILE=${LOG_DIR}/${prog}.ini
 LOG_FILE=${LOG_DIR}/${prog}.log.$(date +%Y%m%d_%H%M%S_%N)
 #
-# sudo ./createMQv8_FP0006Zip.sh /home/mmo275 /home/mmo275
+# sudo ./createMQv8_FP0006Zip.sh ./parameters/createMQv8_FP0006Zip.ini
 #
 mqDefaultDir=$(pwd)
 mqSourceDir=
@@ -62,7 +62,18 @@ function zipMQBinaries() {
     l_mqSourceDir=$1
     l_mqFPDir=$2
     #
+    eval `grep mqSourceFile ${INI_FILE}`
+    if [[ -z ${mqSourceFile} ]]; then
+        Log "mqSourceFile is missing from ${INI_FILE}"
+        exit 1
+    fi
+    if [[ ! -f ${l_mqSourceDir}/${mqSourceFile} ]]; then
+        Log "${l_mqSourceDir}/${mqSourceFile} cannot be found"
+        exit 1
+    fi
+    #
     Log "Zip MQ binary files ...."
+    echo "MQ source DIR = ${l_mqSourceDir}"
     #
     Log "Checking if ${l_mqSourceDir}/${mqSourceFile} exists ..." 
     if [ ! -e ${l_mqSourceDir}/${mqSourceFile} ]; then
@@ -166,27 +177,47 @@ function createMD5Sum() {
          exit -1
     fi
     #
-    mqSourceDir=$1
-    mqFPDir=$2
+    Log "Starting ${prog}.sh"
+    INI_FILE_PATH=$1
+    if [[ -z ${INI_FILE_PATH} ]]; then 
+        Log "${prog} called with null parameter, should be the path to the driving ini_file" 
+        exit 1 
+    fi 
+    if [[ ! -f ${INI_FILE_PATH} ]]; then 
+        Log "${prog} ini_file cannot be found" 
+        exit 1 
+    fi 
+    if  ! mkdir -p ${LOG_DIR}; then 
+        Log "${prog} cant make ${LOG_DIR}" 
+        exit 1 
+    fi 
+    # 
+    cp ${INI_FILE_PATH} ${INI_FILE} 
+    #
+    eval `grep mqSourceDir ${INI_FILE}`
+    eval `grep mqFPDir ${INI_FILE}`
+    #mqSourceDir=$1
+    #mqFPDir=$2
     if [ -z ${mqSourceDir} ];then
         Log "MQ SourceDir is missing, using ${mqDefaultDir}"
-        mqSourceDir=${mqDefaultDir} 
+        exit 1
     fi
     if [ -z ${mqFPDir} ]; then
-        Log "MQ FixPackDir is missing, using ${mqDefaultDir}"
-        mqFPDir=${mqDefaultDir}
+        Log "MQ FixPackDir is missing and will not be added to the output zip file"
     fi
     if [ ! -d ${mqSourceDir} ]; then
         Log "Source directory ${mqSourceDir} does not exist."
-        exit -1
+        exit 1
     fi
-    if [ ! -d ${mqFPDir} ]; then
-        Log "Fixpack directory ${mqFPDir} does not exist."
-        exit -1
+    if [ -z ${mqFPDir} ]; then
+        if [ ! -d ${mqFPDir} ]; then
+            Log "Fixpack directory ${mqFPDir} does not exist."
+            exit 1
+        fi
     fi
     #
     zipMQBinaries ${mqSourceDir} ${mqFPDir}
-    createMD5Sum 
+    ##createMD5Sum 
     #
     Log "MQv8 unzip / installer complete - please check logs in ${LOG_FILE}"
     exit 0

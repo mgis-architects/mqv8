@@ -29,3 +29,16 @@ e.g. Read https://www.ibm.com/support/knowledgecenter/en/SSFKSJ_8.0.0/com.ibm.mq
 
 `export TF_VAR_subscriptionid=YourAzureSubscriptionId`
 
+### Build Zip file
+
+Download the MQv8 Linux binaries from IBM web-site and transfer the file to a folder in Linux - e.g. /home/user1
+Download the MQv8 Linux fix-pack from IBM web-site and transfer the file to a folder on the Linux server - e.g. /home/user
+
+Create a zip file, containing all the Linux installation/setup scripts and the MQ binaries
+
+`sudo ./createMQv8_FP0006Zip.sh createMQv8_FP0006Zip.ini`
+where the ini files contains;
+mqSourceDir={folder where the MQv8 binaries are located}
+mqFPDir={folder where the MQv8 Fix Pack binaries are located}
+
+
