@@ -37,8 +37,11 @@ Download the MQv8 Linux fix-pack from IBM web-site and transfer the file to a fo
 Create a zip file, containing all the Linux installation/setup scripts and the MQ binaries
 
 `sudo ./createMQv8_FP0006Zip.sh createMQv8_FP0006Zip.ini`
+
 where the ini files contains;
-mqSourceDir={folder where the MQv8 binaries are located}
-mqFPDir={folder where the MQv8 Fix Pack binaries are located}
+
+`mqSourceDir={folder where the MQv8 binaries are located}`
+
+`mqFPDir={folder where the MQv8 Fix Pack binaries are located}`
 
 
