@@ -1,0 +1,15 @@
+
+0 - createMQv8_FP0006Zip.sh
+1 - unzipMQv8_FP0006.sh      .... sudo ./createMQv8_FP0006Zip.sh MQv8FP0006.zip /home/[account] /home/[account]
+
+2 - partitionDisk.sh         .... sudo ./partitionDisk.sh ./parameters/partitionDisk.ini
+3 - untarMQv8.sh             .... sudo ./untarMQv8.sh ./parameters/untarMQv8.ini
+4 - untarMQFP0006.sh         .... sudo ./untarMQFP0006.sh ./parameters/untarMQv8FP0006.ini
+5 - updateSystemFile_mqm.sh  .... sudo ./updateSystemFiles_mqm.sh ./parameters/updateSystemFiles_mqm.ini
+6 - installMQv8.sh           .... sudo ./installMQv8.sh ./parameters/untarMQv8.ini
+7 - installMQv8FP0006.sh     .... sudo ./installMQv8FP0006.sh ./parameters/untarMQv8FP0006.ini
+8 - enableMQCommands.sh      .... sudo ./enableMQCommands
+
+9 - createQueueManager.sh    .... sudo ./createQueueManager.sh ./parameters/TSTQAD01.ini 
+(create queue manager mqsc files under /home/mqm/mqsc_files for each queue manager)
+
