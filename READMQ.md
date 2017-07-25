@@ -3,10 +3,17 @@
 ## Clone the Repo
 `git clone https://github.com/mgis-architects/mqv8`
 
-## Install Terraform
+## Install IBM MQv8
 
 Select the latest version...
 
+Production version must be used for ALL environments higher than development.
+
+IBM MQ must be downloaded from IBMs Passport Advantage web-site;
+https://www-01.ibm.com/software/passportadvantage/pao_customer.html
+
+Development version of MQv8 can be installed and used, without license from;
+http://www14.software.ibm.com/cgi-bin/weblap/lap.pl?popup=Y&li_formnum=L-APIG-9BUHAE&accepted_url=http://public.dhe.ibm.com/ibmdl/export/pub/software/websphere/messaging/mqadv/mqadv_dev80_linux_x86-64.tar.gz
 
 ## Read about the provider
 
