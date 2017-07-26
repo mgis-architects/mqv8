@@ -113,9 +113,13 @@ set `DLQ` to the name of the MQ Dead Letter Queue
 set `clusterName` to the name of the MQ cluster
 
 set `remoteQueueMangerName` to the name of the remote queue manager that 'this' queue manager will connect to
+
 set `qmHost` to the IP address of 'this' queue manager
+
 set `qmPort` to the port number of 'this' queue manager will listen on
+
 set `remoteHost` to the IP address of the remote queue manager, that 'this' queue manager will connect to
+
 set `remoteqmPort` to the port number of the remote queue manager that 	'this' queue manager will connect to
 
 
