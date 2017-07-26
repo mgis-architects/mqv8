@@ -31,17 +31,27 @@ e.g. Read https://www.ibm.com/support/knowledgecenter/en/SSFKSJ_8.0.0/com.ibm.mq
 
 ### Build Zip file
 
-Download the MQv8 Linux binaries from IBM web-site and transfer the file to a folder in Linux - e.g. /home/user1
+Download the MQv8 Linux binaries from IBM web-site and transfer the file to a folder in Linux - e.g. /home/user
 Download the MQv8 Linux fix-pack from IBM web-site and transfer the file to a folder on the Linux server - e.g. /home/user
 
+### Before running createMQv8_FP0006Zip.sh
+#### createMQv8_FP0006Zip.ini
+update the ./parameters/createMQv8_FP0006Zip.ini
+
+set `mqSourceDir` to the folder containing the MQ binaries
+set `mqFPDir` to the folder containing the MQ Fix Pack binaries (optional)
+
+
+
+
+### Create Zip file
 Create a zip file, containing all the Linux installation/setup scripts and the MQ binaries
+An .md5 sha file is also created, but is not added to the zip file
 
 `sudo ./createMQv8_FP0006Zip.sh createMQv8_FP0006Zip.ini`
 
-where the ini files contains;
+### Copy Zip File
+Copy created zip file and md5 file to appropriate server 
 
-`mqSourceDir={folder where the MQv8 binaries are located}`
-
-`mqFPDir={folder where the MQv8 Fix Pack binaries are located}`
-
+### Install
 
