@@ -111,7 +111,13 @@ function unzipMQv8File() {
     #
     Log "Starting ${prog}.sh"
     Log "starting unzipMQvFile ...."
-    unzipMQv8File "$@"
+    ./checkForMQZipFile.sh ./parameters/checkForMQZipFile.ini
+    RC=$?
+    if [ ${RC} != 0 ]; then
+        Log "MD5 zip file mismatch returned"
+        exit 1
+    fi
+    ./unzipMQv8File "$@"
     RC=$?
     Log "unzipMQv8File finished ... RC=${RC}"
     if ! cd ${mqTargetDir}; then
@@ -121,9 +127,9 @@ function unzipMQv8File() {
     #
     if [ ${RC} == 0 ]; then
         Log "starting partitionDisk ..."
-        ./partitionDisk.sh ./parameters/partitionDisk.ini
+        ./allocateStorage.sh ./parameters/allocateStorage.ini
         RC=$?
-        Log "partitionDisk finished ... RC=${RC}"
+        Log "allocateStorage finished ... RC=${RC}"
     fi
     #
     if [ ${RC} == 0 ]; then

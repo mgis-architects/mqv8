@@ -1,9 +1,9 @@
 #!/bin/bash
 ####################################################################################
 ## 
-## SCRIPT: partitionDisk.sh
+## SCRIPT: allocateStorage.sh
 ##
-## This script will be partition disk 'sdc'
+## This script will be allocate storage onto disk 'sdc'
 ##
 ###################################################################################
 ##
@@ -13,7 +13,7 @@
 ##
 ###################################################################################
 
-prog=partitionDisk
+prog=allocateStorage
 
 ###################################################################################
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -105,21 +105,7 @@ n
 p
 
 
-${partSize1}
-n
-p
 
-
-${partSize2}
-n
-p
-
-
-${partSize3}
-n
-p
-
-${partSize4}
 w
 EOF
     #
@@ -127,6 +113,38 @@ EOF
     #
     fdisk -l >> ${LOG_FILE} 
 }
+
+########################################################################
+#
+# Create Volume Group
+#
+########################################################################
+function createVolGroup() {
+    #
+    Log "Creating volume group"
+    if ! vgcreate lv_mqm /dev/${disk}1 >> ${LOG_FILE}; then
+        Log "Error creating Volume Group vgmqm"
+        exit 1
+    fi
+    if ! lvcreate lv_mqm -L ${partSize1} --name qmgrs >> ${LOG_FILE}; then
+        Log "Error cresting Logical Volume for qmgrs"
+        exit 1
+    fi
+    if ! lvcreate lv_mqm -L ${partSize2} --name log >> ${LOG_FILE}; then
+        Log "Error cresting Logical Volume for log"
+        exit 1
+    fi
+    if ! lvcreate lv_mqm -L ${partSize3} --name errors >> ${LOG_FILE}; then
+        Log "Error cresting Logical Volume for errors"
+        exit 1
+    fi
+    if ! lvcreate lv_mqm -L ${partSize4} --name trace >> ${LOG_FILE}; then
+        Log "Error cresting Logical Volume for trace"
+        exit 1
+    fi
+
+}
+
 ########################################################################
 #
 # Format partitions
@@ -136,22 +154,22 @@ function formatPartitions() {
     #
     # format partitions
     #
-    Log "Formatting partitions on disk ${disk} ..."
+    Log "Formatting partitions on /dev/mapper/lv_mqm ..."
     #
-    if ! mkfs.ext4 -L qmgrs /dev/${disk}1 >> ${LOG_FILE}; then 
-        Log "Error formatting /dev/${disk}1 for qmgrs"
+    if ! mkfs.ext4 -L qmgrs /dev/mapper/lv_mqm-qmgrs >> ${LOG_FILE}; then 
+        Log "Error formatting /dev/mapper/lv_mqm-qmgrs"
         exit 1
     fi
-    if ! mkfs.ext4 -L log /dev/${disk}2 >> ${LOG_FILE}; then
-        Log "Error formatting /dev/${disk}2 for log"
+    if ! mkfs.ext4 -L log /dev/mapper/lv_mqm-log >> ${LOG_FILE}; then
+        Log "Error formatting /dev/mapper/lv_mqm-log"
         exit 1
     fi
-    if ! mkfs.ext4 -L errors /dev/${disk}3 >> ${LOG_FILE}; then
-        Log "Error formatting /dev/${disk}3 for errors"
+    if ! mkfs.ext4 -L errors /dev/mapper/lv_mqm-errors >> ${LOG_FILE}; then
+        Log "Error formatting /dev/mapper/lv_mqm-errors"
         exit 1
     fi
-    if ! mkfs.ext4 -L trace /dev/${disk}4 >> ${LOG_FILE}; then
-        Log "Error formatting /dev/${disk}4 for trace"
+    if ! mkfs.ext4 -L trace /dev/mapper/lv_mqm-trace >> ${LOG_FILE}; then
+        Log "Error formatting /dev/mapper/lv_mqm-trace"
         exit 1
     fi
     #
@@ -160,6 +178,7 @@ function formatPartitions() {
 #
 # createCredentials
 #
+
 ########################################################################
 function createCredentials() {
     #
@@ -253,20 +272,20 @@ function mountFileSystems() {
     #
     Log "Mounting MQ file systems"
     #
-    if ! mount /dev/${disk}1 /var/mqm/qmgrs/ >> ${LOG_FILE}; then 
-        Log "Error mounting /dev/${disk}1 /var/mqm/qmgrs/"
+    if ! mount /dev/mapper/lv_mqm-qmgrs/ /var/mqm/qmgrs/ >> ${LOG_FILE}; then 
+        Log "Error mounting /dev/mapper/lv_mqm-qmgrs/ /var/mqm/qmgrs/"
         exit 1
     fi
-    if ! mount /dev/${disk}2 /var/mqm/log/ >> ${LOG_FILE}; then
-        Log "Error mounting /dev/${disk}2 /var/mqm/log/"
+    if ! mount /dev/mapper/lv_mqm-log/ /var/mqm/log/ >> ${LOG_FILE}; then
+        Log "Error mounting /dev/mapper/lv_mqm-log/ /var/mqm/log/"
         exit 1
     fi
-    if ! mount /dev/${disk}3 /var/mqm/errors/ >> ${LOG_FILE}; then
-        Log "Error mounting /dev/${disk}3 /var/mqm/errors/"
+    if ! mount /dev/mapper/lv_mqm-errors/ /var/mqm/errors/ >> ${LOG_FILE}; then
+        Log "Error mounting /dev/mapper/lv_mqm-errors/ /var/mqm/errors/"
         exit 1
     fi
-    if ! mount /dev/${disk}4 /var/mqm/trace/ >> ${LOG_FILE}; then
-        Log "Error mounting /dev/${disk}4 /var/mqm/trace/"
+    if ! mount /dev/mapper/lv_mqm-trace/ /var/mqm/trace/ >> ${LOG_FILE}; then
+        Log "Error mounting /dev/mapper/lv_mqm-trace/ /var/mqm/trace/"
         exit 1
     fi
     #
@@ -293,22 +312,22 @@ function mountFileSystems() {
     # add UUID for each partition to /etc/fstab
     #
     l_uuid=`lsblk --fs --output LABEL,UUID | grep -v '^[[:space:]]' | grep 'qmgrs' | awk -F ' ' '{print $2}'`
-    if [ -z ${l_uuid} ] || ! echo ${l_uuid} | awk '{printf "UUID=%s /var/mqm/qmgrs/ \t  ext4 \t  defaults \t  1 2\n", $1}' >> /etc/fstab; then
+    if [ -z ${l_uuid} ] || ! echo ${l_uuid} | awk '{printf "UUID=%s /var/mqm/qmgrs/ \t  ext4 \t  defaults,nofail \t  1 2\n", $1}' >> /etc/fstab; then
         Log "Error insert ${l_uuid}/missing for qmgrs into /etc/fstab"
         exit 1
     fi
     l_uuid=`lsblk --fs --output LABEL,UUID | grep -v '^[[:space:]]' | grep 'log' | awk -F ' ' '{print $2}'`
-    if [ -z ${l_uuid} ] || ! echo ${l_uuid} | awk '{printf "UUID=%s /var/mqm/log/ \t  ext4 \t  defaults \t  1 2\n", $1}' >> /etc/fstab; then
+    if [ -z ${l_uuid} ] || ! echo ${l_uuid} | awk '{printf "UUID=%s /var/mqm/log/ \t  ext4 \t  defaults,nofail \t  1 2\n", $1}' >> /etc/fstab; then
         Log "Error insert ${l_uuid}/missing for log into /etc/fstab"
         exit 1
     fi
     l_uuid=`lsblk --fs --output LABEL,UUID | grep -v '^[[:space:]]' | grep 'errors' | awk -F ' ' '{print $2}'`
-    if [ -z ${l_uuid} ] || ! echo ${l_uuid} | awk '{printf "UUID=%s /var/mqm/errors/ \t  ext4 \t  defaults \t  1 2\n", $1}' >> /etc/fstab; then
+    if [ -z ${l_uuid} ] || ! echo ${l_uuid} | awk '{printf "UUID=%s /var/mqm/errors/ \t  ext4 \t  defaults,nofail \t  1 2\n", $1}' >> /etc/fstab; then
         Log "Error insert ${l_uuid} for errors into /etc/fstab"
         exit 1
     fi
     l_uuid=`lsblk --fs --output LABEL,UUID | grep -v '^[[:space:]]' | grep 'trace' | awk -F ' ' '{print $2}'`
-    if [ -z ${l_uuid} ] || ! echo ${l_uuid} | awk '{printf "UUID=%s /var/mqm/trace/ \t  ext4 \t  defaults \t  1 2\n", $1}' >> /etc/fstab; then
+    if [ -z ${l_uuid} ] || ! echo ${l_uuid} | awk '{printf "UUID=%s /var/mqm/trace/ \t  ext4 \t  defaults,nofail \t  1 2\n", $1}' >> /etc/fstab; then
         Log "Error insert ${l_uuid} for trace into /etc/fstab"
         exit 1
     fi
@@ -324,10 +343,7 @@ function mountFileSystems() {
     #
     # This script must run under root
     #
-    echo "This script should no longer be used ... use allocateStorage.sh"
-    exit 1
-    #
-    RC=0 
+    RC=0
     #
     if (( $EUID != 0 ))
     then
@@ -357,6 +373,13 @@ function mountFileSystems() {
     createPartitions
     RC=$?
     #
+    # Create Volume Groups / Logical Volumes
+    #
+    if [ ${RC} == 0 ]; then
+       Log "Creating Volume Groups ..."
+       createVolGroup
+       RC=$?
+    fi
     # Format partitions
     #
     if [ ${RC} == 0 ]; then
