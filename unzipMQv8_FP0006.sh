@@ -24,8 +24,9 @@ LOG_DIR=/var/log/mqInstaller
 INI_FILE=${LOG_DIR}/${prog}.ini
 LOG_FILE=${LOG_DIR}/${prog}.log.$(date +%Y%m%d_%H%M%S_%N)
 #
-# ./unzipMQv8_FP0006.sh MQv8FP0006.zip /home/mqadmin/ /home/mqadmin/ TSTQFD01
-
+## ./unzipMQv8_FP0006.sh MQv8FP0006.zip /home/mqadmin/ /home/mqadmin/ TSTQFD01
+# ./unzipMQv8_FP0006.sh ~/unzipMQv8_FP0006.ini TSTQFD01
+#
 ###################################################################################
 #
 # Log output to a file
@@ -45,21 +46,22 @@ function Log() {
 
 ###########################################################################
 #
-# Unzip zip file
+# Set variables
 #
 ###########################################################################
-function unzipMQv8File() {
+function setVariables() {
     #
-    Log "Unzipping file ${MQv8zipFile}"
-    mqMQv8zipFile=$1
-    mqSourceDir=$2
-    mqTargetDir=$3
-    QM=$4
+    Log "Setting variables"
+    #
+    eval `grep mqMQv8zipFile ${INI_FILE}`
+    eval `grep mqSourceDir ${INI_FILE}`
+    eval `grep mqTargetDir ${INI_FILE}`
+    QM=$2
     #
     if [ -z ${mqMQv8zipFile} ];then
         Log "Invalid parameters;mqMQv8zipFile is missing "
         exit 1
-    fi 
+    fi
     if [ -z ${mqSourceDir} ];then
         Log "Invalid parameters;mqSourceDir is missing "
         exit 1
@@ -72,7 +74,50 @@ function unzipMQv8File() {
         Log "Invalid parameters;QM is missing "
         exit 1
     fi
+
+}
+
+###########################################################################
+#
+# Unzip zip file
+#
+###########################################################################
+function unzipMQv8File() {
     #
+    Log "Unzipping file ${MQv8zipFile}"
+    #
+    echo " mqMQv8zipFile = ${mqMQv8zipFile}"
+    echo " mqSourceFile = ${mqSourceDir}"
+    echo " mqTargetDir = ${mqTargetDir}"
+    echo " QM = ${QM}"
+    #
+    ##eval `grep mqMQv8zipFile ${INI_FILE}`
+    ##eval `grep mqSourceDir ${INI_FILE}`
+    ##eval `grep mqTargetDir ${INI_FILE}`
+    ##eval `grep QM ${INI_FILE}`
+    #
+    #mqMQv8zipFile=$1
+    #mqSourceDir=$2
+    #mqTargetDir=$3
+    #QM=$4
+    #
+    ##if [ -z ${mqMQv8zipFile} ];then
+    ##    Log "Invalid parameters;mqMQv8zipFile is missing "
+    ##    exit 1
+    ##fi 
+    ##if [ -z ${mqSourceDir} ];then
+    ##    Log "Invalid parameters;mqSourceDir is missing "
+    ##    exit 1
+    ##fi
+    ##if [ -z ${mqTargetDir} ];then
+    ##    Log "Invalid parameters;mqTargetDir is missing "
+    ##    exit 1
+    ##fi
+    ##if [ -z ${QM} ];then
+    ##    Log "Invalid parameters;QM is missing "
+    ##    exit 1
+    ##fi
+    ###
     if [[ ! -d ${mqTargetDir} ]];then
         Log "Target directory ${mqTartgetDir} does not exist, select an existing directory"
         exit 1
@@ -109,15 +154,33 @@ function unzipMQv8File() {
          exit 1
     fi
     #
+    INI_FILE_PATH=$1
+    if [[ -z ${INI_FILE_PATH} ]]; then
+        Log "${prog} called with null parameter, should be the path to the driving ini_file"
+        exit 1
+    fi
+    if [[ ! -f ${INI_FILE_PATH} ]]; then
+        Log "${prog} ini_file cannot be found"
+        exit 1
+    fi
+    if ! mkdir -p ${LOG_DIR}; then
+        Log "${prog} cant make ${LOG_DIR}"
+        exit 1
+    fi
+    #
+    cp ${INI_FILE_PATH} ${INI_FILE}
+    #
     Log "Starting ${prog}.sh"
+    setVariables "$@"
+    #
     Log "starting unzipMQvFile ...."
-    ./checkForMQZipFile.sh ./parameters/checkForMQZipFile.ini
+    /bin/bash checkForMQZipFile.sh MQv8FP0006.zip
     RC=$?
     if [ ${RC} != 0 ]; then
         Log "MD5 zip file mismatch returned"
         exit 1
     fi
-    ./unzipMQv8File "$@"
+    unzipMQv8File
     RC=$?
     Log "unzipMQv8File finished ... RC=${RC}"
     if ! cd ${mqTargetDir}; then
@@ -170,7 +233,7 @@ function unzipMQv8File() {
     #
     Log "checking for file parameters/${QM}.ini"
     if [[ ! -f parameters/${QM}.ini ]]; then
-        echo "${prog} Queue Manager ini file cannot be found"
+        Log "Error: Queue Manager ini file ${QM}.ini can not be found"
         exit 1
     fi
     if [ ${RC} == 0 ]; then
@@ -182,5 +245,5 @@ function unzipMQv8File() {
     #
     Log "unzipMQv8_FP0006 complete - please check logs in ${LOG_FILE}"
     #
-    exit 0
+    exit ${RC}
 

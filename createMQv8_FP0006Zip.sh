@@ -113,14 +113,14 @@ function zipMQBinaries() {
     # 
     # add scripts here
     # unzipMQv8_FP0006.sh    - 15/07/2017 ** Installer script
-    # partitaionDisk.sh      - 15/07/2017 -- partition disk
+    # allocateStorage.sh     - 27/07/2017 -- partition disk and allocate storage
     # untarMQv8.sh           - 16/07/2017 -- untar MQ files
     # untarMQv8FP0006.sh     - 16/07/2017 -- untar MQ fixpack 6
     # updateSystemFiles_mqm  - 17/07/2017 -- update system files
     # installMQv8            - 17/07/2017 -- install MQ
     # installMQv8FP0006      - 17/07/2017 -- Install MQ fixpack 6
     #
-    l_shellScripts="partitionDisk.sh untarMQv8.sh untarMQv8FP0006.sh updateSystemFiles_mqm.sh"
+    l_shellScripts="allocateStorage.sh untarMQv8.sh untarMQv8FP0006.sh updateSystemFiles_mqm.sh"
     l_shellScripts="${l_shellScripts} installMQv8.sh installMQv8FP0006.sh createQueueManager.sh" 
     cd ${mqDefaultDir}
     if ! zip -9 -u ${DIR}/${mqOutZip} ${l_shellScripts}; then
@@ -149,6 +149,7 @@ function createMD5Sum() {
        Log "${mqOutZip} does not exist ..."
        exit 1
     fi
+    rm -rf ${DIR}/${mqOutZip}.md5 
     md5sum ${mqOutZip} >> ${mqOutZip}.md5
     #
     Log "${mqOutZip} file created"
@@ -217,7 +218,7 @@ function createMD5Sum() {
     fi
     #
     zipMQBinaries ${mqSourceDir} ${mqFPDir}
-    ##createMD5Sum 
+    createMD5Sum 
     #
     Log "MQv8 unzip / installer complete - please check logs in ${LOG_FILE}"
     exit 0

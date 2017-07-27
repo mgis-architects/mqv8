@@ -50,11 +50,13 @@ function checkForZipFile() {
     #
     # Check for the zip file
     #
-    eval `grep zipFile ${INI_FILE}`
+    zipFile=$1
     if [[ -z ${zipFile} ]] ; then
        Log "Invalid parametere;zipFile missing from ${INI_FILE}"
        exit 1
     fi
+    #
+    # Check that the md5 file exists 
     #
     md5File="${zipFile}.md5"
     loopCount=1
@@ -137,25 +139,14 @@ function checkForZipFile() {
          exit 1
     fi
     Log "Starting ${prog}.sh"
-    INI_FILE_PATH=$1
-    if [[ -z ${INI_FILE_PATH} ]]; then
-        Log "${prog} called with null parameter, should be the path to the driving ini_file"
-        exit 1
-    fi
-    if [[ ! -f ${INI_FILE_PATH} ]]; then
-        Log "${prog} ini_file cannot be found"
-        exit 1
-    fi
     if ! mkdir -p ${LOG_DIR}; then
         Log "${prog} cant make ${LOG_DIR}"
         exit 1
     fi
     #
-    cp ${INI_FILE_PATH} ${INI_FILE}
-    #
     # Check for the file
     #
-    checkForZipFile
+    checkForZipFile "$@"
     RC=$?
     #
     Log "MD5 Sha complete - please check logs in ${LOG_FILE}"
