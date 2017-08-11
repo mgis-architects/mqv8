@@ -26,11 +26,11 @@ LOG_FILE=${LOG_DIR}/${prog}.log.$(date +%Y%m%d_%H%M%S_%N)
 # sudo ./createMQv8_FP0006Zip.sh ./parameters/createMQv8_FP0006Zip.ini
 #
 mqDefaultDir=$(pwd)
-mqSourceDir=
-mqSourceFile=WS_MQ_V8.0.0.4_LINUX_ON_X86_64_IM.tar.gz
-mqFPFile=8.0.0-WS-MQ-LinuxX64-FP0006.tar.gz
-mqFPDir=
-mqOutZip=MQv8FP0006.zip
+###mqSourceDir=
+###mqSourceFile=WS_MQ_V8.0.0.4_LINUX_ON_X86_64_IM.tar.gz
+###mqFPFile=8.0.0-WS-MQ-LinuxX64-FP0006.tar.gz
+###mqFPDir=
+###mqOutZip=MQv8FP0006.zip
 #
 ###################################################################################
 #
@@ -56,37 +56,69 @@ function Log() {
 #########################################################################
 function zipMQBinaries() {
     #
-    local l_mqSourceDir
-    local l_mqFPDir
+    ##local l_mqSourceDir
+    ##local l_mqFPDir
     #
-    l_mqSourceDir=$1
-    l_mqFPDir=$2
+    ##l_mqSourceDir=$1
+    ##l_mqFPDir=$2
+    eval `grep mqSourceDir ${INI_FILE}`
+    if [ -z ${mqSourceDir} ];then
+        Log "Missing parameter;mqSourceDir is missing from ${INI_FILE}"
+        exit 1
+    fi
+    eval `grep mqFPDir ${INI_FILE}`
+    if [ -z ${mqFPDir} ]; then
+        Log "MQ FixPackDir is missing and will not be added to the output zip file"
+    fi
+    if [ ! -d ${mqSourceDir} ]; then
+        Log "Source directory ${mqSourceDir} does not exist."
+        exit 1
+    fi
+    if [ -z ${mqFPDir} ]; then
+        if [ ! -d ${mqFPDir} ]; then
+            Log "Fixpack directory ${mqFPDir} does not exist."
+            exit 1
+        fi
+    fi
     #
     eval `grep mqSourceFile ${INI_FILE}`
     if [[ -z ${mqSourceFile} ]]; then
         Log "mqSourceFile is missing from ${INI_FILE}"
         exit 1
     fi
-    if [[ ! -f ${l_mqSourceDir}/${mqSourceFile} ]]; then
-        Log "${l_mqSourceDir}/${mqSourceFile} cannot be found"
+    if [[ ! -f ${mqSourceDir}/${mqSourceFile} ]]; then
+        Log "${mqSourceDir}/${mqSourceFile} cannot be found"
+        exit 1
+    fi
+    eval `grep mqFPFile ${INI_FILE}`
+    if [[ -z ${mqFPFile} ]]; then
+        Log "mqFPFile is missing from ${INI_FILE}"
+    fi
+    if [[ ! -f ${mqFPDir}/${mqFPFile} ]]; then
+        Log "${mqFPDir}/${mqFPFile} cannot be found"
+    fi
+    #
+    eval `grep mqOutZip ${INI_FILE}`
+    if [[ -z ${mqOutZip} ]]; then
+        Log "mqOutZip is missing from ${INI_FILE}"
         exit 1
     fi
     #
     Log "Zip MQ binary files ...."
-    echo "MQ source DIR = ${l_mqSourceDir}"
+    Log "MQ source DIR = ${mqSourceDir}"
     #
-    Log "Checking if ${l_mqSourceDir}/${mqSourceFile} exists ..." 
-    if [ ! -e ${l_mqSourceDir}/${mqSourceFile} ]; then
-        Log "${l_mqSourceDir}/${mqSourceFile} is missing."
+    Log "Checking if ${mqSourceDir}/${mqSourceFile} exists ..." 
+    if [ ! -e ${mqSourceDir}/${mqSourceFile} ]; then
+        Log "${mqSourceDir}/${mqSourceFile} is missing."
         exit 1
     fi
-    Log "MQ file ${l_mqSourceDir}/${mqSourceFile} exists ..." 
+    Log "MQ file ${mqSourceDir}/${mqSourceFile} exists ..." 
     #
-    Log "Checking is ${l_mqFPDir}/${mqFPFile} exists ..."
-    if [ ! -e ${l_mqFPDir}/${mqFPFile} ]; then
-        Log "${l_mqFPDir}/${mqFPFile} is missing - fixpack file will not be added"
+    Log "Checking is ${mqFPDir}/${mqFPFile} exists ..."
+    if [ ! -e ${mqFPDir}/${mqFPFile} ]; then
+        Log "${mqFPDir}/${mqFPFile} is missing - fixpack file will not be added"
     else
-        Log "Fix Pack ${l_MQFPDir}/${mqFPFile} will be added ..."
+        Log "Fix Pack ${mqFPDir}/${mqFPFile} will be added ..."
     fi
     #
     Log "Checking if a previous version of ${mqOutZip} exists ..."
@@ -96,16 +128,18 @@ function zipMQBinaries() {
        Log "${mqOutZip} deleted"
     fi
     #
-    cd ${l_mqSourceDir}
+    echo "${DIR}/mqSourceFile = ${mqSourceFile}"
+    echo "${DIR}/mqFPFile =  ${mqFPFile}"
+    cd ${mqSourceDir}
     if ! zip -9 ${DIR}/${mqOutZip} ${mqSourceFile}; then
        Log "Error adding ${mqSourceFile} file to zip file ${mqOutZip}"
        exit 1
     fi
     #
-    if [ ! -e ${l_mqFPDir}/${mqFPFile} ]; then
-        Log "${l_mqFPDir}/${mqFPFile} file will not be added"
+    if [ ! -e ${mqFPDir}/${mqFPFile} ]; then
+        Log "${mqFPDir}/${mqFPFile} file will not be added"
     else
-        cd ${l_mqFPDir}
+        cd ${mqFPDir}
         if ! zip -9 -u ${DIR}/${mqOutZip} ${mqFPFile}; then
             Log "Error adding ${mqFPFile} file to zip file ${mqOutZip}"
         fi
@@ -195,29 +229,7 @@ function createMD5Sum() {
     # 
     cp ${INI_FILE_PATH} ${INI_FILE} 
     #
-    eval `grep mqSourceDir ${INI_FILE}`
-    eval `grep mqFPDir ${INI_FILE}`
-    #mqSourceDir=$1
-    #mqFPDir=$2
-    if [ -z ${mqSourceDir} ];then
-        Log "MQ SourceDir is missing, using ${mqDefaultDir}"
-        exit 1
-    fi
-    if [ -z ${mqFPDir} ]; then
-        Log "MQ FixPackDir is missing and will not be added to the output zip file"
-    fi
-    if [ ! -d ${mqSourceDir} ]; then
-        Log "Source directory ${mqSourceDir} does not exist."
-        exit 1
-    fi
-    if [ -z ${mqFPDir} ]; then
-        if [ ! -d ${mqFPDir} ]; then
-            Log "Fixpack directory ${mqFPDir} does not exist."
-            exit 1
-        fi
-    fi
-    #
-    zipMQBinaries ${mqSourceDir} ${mqFPDir}
+    zipMQBinaries
     createMD5Sum 
     #
     Log "MQv8 unzip / installer complete - please check logs in ${LOG_FILE}"

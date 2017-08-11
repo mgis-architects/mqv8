@@ -86,38 +86,11 @@ function unzipMQv8File() {
     #
     Log "Unzipping file ${MQv8zipFile}"
     #
-    echo " mqMQv8zipFile = ${mqMQv8zipFile}"
-    echo " mqSourceFile = ${mqSourceDir}"
-    echo " mqTargetDir = ${mqTargetDir}"
-    echo " QM = ${QM}"
+    Log " mqMQv8zipFile = ${mqMQv8zipFile}"
+    Log " mqSourceFile = ${mqSourceDir}"
+    Log " mqTargetDir = ${mqTargetDir}"
+    Log " QM = ${QM}"
     #
-    ##eval `grep mqMQv8zipFile ${INI_FILE}`
-    ##eval `grep mqSourceDir ${INI_FILE}`
-    ##eval `grep mqTargetDir ${INI_FILE}`
-    ##eval `grep QM ${INI_FILE}`
-    #
-    #mqMQv8zipFile=$1
-    #mqSourceDir=$2
-    #mqTargetDir=$3
-    #QM=$4
-    #
-    ##if [ -z ${mqMQv8zipFile} ];then
-    ##    Log "Invalid parameters;mqMQv8zipFile is missing "
-    ##    exit 1
-    ##fi 
-    ##if [ -z ${mqSourceDir} ];then
-    ##    Log "Invalid parameters;mqSourceDir is missing "
-    ##    exit 1
-    ##fi
-    ##if [ -z ${mqTargetDir} ];then
-    ##    Log "Invalid parameters;mqTargetDir is missing "
-    ##    exit 1
-    ##fi
-    ##if [ -z ${QM} ];then
-    ##    Log "Invalid parameters;QM is missing "
-    ##    exit 1
-    ##fi
-    ###
     if [[ ! -d ${mqTargetDir} ]];then
         Log "Target directory ${mqTartgetDir} does not exist, select an existing directory"
         exit 1

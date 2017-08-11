@@ -174,7 +174,7 @@ define channel(TO.${remoteQueueManagerName}) chltype(CLUSSDR) trptype(TCP) conna
 #
 define channel(SYSTEM.ADMIN.SVRCONN) chltype(SVRCONN)
 set chlauth(SYSTEM.ADMIN.SVRCONN) type(BLOCKUSER) userlist('nobody')
-set chlauth(SYSTEM.ADMIN.SVRCONN) type(USERMAP) CLNTUSER('mmo275') usersrc(MAP) mcauser('mqm')
+## add usermap or address map rule
 #
 
 EOFMQSC"
@@ -259,7 +259,7 @@ define channel(TO.${remoteQueueManagerName}) chltype(CLUSSDR) trptype(TCP) conna
 #
 define channel(SYSTEM.ADMIN.SVRCONN) chltype(SVRCONN)
 set chlauth(SYSTEM.ADMIN.SVRCONN) type(BLOCKUSER) userlist('nobody')
-set chlauth(SYSTEM.ADMIN.SVRCONN) type(USERMAP) CLNTUSER('mmo275') usersrc(MAP) mcauser('mqm')
+## add usersrc or address map rule
 #
 EOFMQSC"
     #
