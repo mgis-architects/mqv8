@@ -128,8 +128,8 @@ function zipMQBinaries() {
        Log "${mqOutZip} deleted"
     fi
     #
-    echo "${DIR}/mqSourceFile = ${mqSourceFile}"
-    echo "${DIR}/mqFPFile =  ${mqFPFile}"
+    Log "${DIR}/mqSourceFile = ${mqSourceFile}"
+    Log "${DIR}/mqFPFile =  ${mqFPFile}"
     cd ${mqSourceDir}
     if ! zip -9 ${DIR}/${mqOutZip} ${mqSourceFile}; then
        Log "Error adding ${mqSourceFile} file to zip file ${mqOutZip}"
@@ -172,10 +172,91 @@ function zipMQBinaries() {
 
 ###########################################################################
 #
-# md5sum
+# Linux IIB binaries
 #
 ###########################################################################
-function createMD5Sum() {
+function zipLinuxIIBBinaries() {
+    #
+    eval `grep iibLinuxFile ${INI_FILE}`
+    if [[ -z ${iibLinuxFile} ]]; then
+        echo "parameter;iibLinuxFile is missing from ${INI_FILE} - and will not be added"
+        return 2
+    fi
+    if [[ ! -f ${mqSourceDir}/${iibLinuxFile} ]]; then
+        echo "${mqSourceDir}/${iibLinuxFile} cannot be found - and will not be added"
+        return 2
+    fi
+    #
+    eval `grep iibLinuxOutZip ${INI_FILE}`
+    if [[ -z ${iibLinuxOutZip} ]]; then
+        Log "iibLinuxOutZip is missing from ${INI_FILE}"
+        exit 1
+    fi
+    eval `grep mqSourceDir ${INI_FILE}`
+    if [ -z ${mqSourceDir} ];then
+        Log "Missing parameter;mqSourceDir is missing from ${INI_FILE}"
+        exit 1
+    fi
+    if [ ! -d ${mqSourceDir} ]; then
+        Log "Source directory ${mqSourceDir} does not exist."
+        exit 1
+    fi
+    #
+    cd ${mqSourceDir}
+    if ! zip -9 ${DIR}/${iibLinuxOutZip} ${iibLinuxFile}; then
+       Log "Error adding ${iibLinuxFile} file to zip file ${iibLinuxOutZip}"
+       exit 1
+    fi
+    #
+}
+
+###########################################################################
+#
+# IIB Windows
+#
+###########################################################################
+function zipWinIIBBinaries() {
+    #
+    eval `grep iibWinFile ${INI_FILE}`
+    if [[ -z ${iibWinFile} ]]; then
+        Log "parameter;iibWinFile is missing from ${INI_FILE} - and will not be added"
+        return 2
+    fi
+    if [[ ! -f ${mqSourceDir}/${iibWinFile} ]]; then
+        Log "${mqSourceDir}/${iibWinFile} cannot be found - and will not be added"
+        return 2
+    fi
+    #
+    eval `grep iibWinOutZip ${INI_FILE}`
+    if [[ -z ${iibWinOutZip} ]]; then
+        Log "iibWinOutZip is missing from ${INI_FILE}"
+        exit 1
+    fi
+    eval `grep mqSourceDir ${INI_FILE}`
+    if [ -z ${mqSourceDir} ];then
+        Log "Missing parameter;mqSourceDir is missing from ${INI_FILE}"
+        exit 1
+    fi
+    if [ ! -d ${mqSourceDir} ]; then
+        Log "Source directory ${mqSourceDir} does not exist."
+        exit 1
+    fi
+    #
+    cd ${mqSourceDir}
+    if ! zip -9 ${DIR}/${iibWinOutZip} ${iibWinFile}; then
+       Log "Error adding ${iibWinFile} file to zip file ${iibWinOutZip}"
+       exit 1
+    fi
+    #
+
+}
+
+###########################################################################
+#
+# MQ md5sum
+#
+###########################################################################
+function createMQ_MD5Sum() {
     #
     Log "Creating md5 sum value for ${DIR}${mqOutZip}"
     cd ${mqDefaultDir}
@@ -190,6 +271,59 @@ function createMD5Sum() {
     #
     if ! unzip -l ${DIR}/${mqOutZip}; then
        Log "Error listing files in ${DIR}/${mqOutZip}"
+       exit 1
+    fi
+    #
+
+}
+
+###########################################################################
+#
+# Linux IIB md5sum
+#
+###########################################################################
+function createLinuxIIB_MD5Sum() {
+    #
+    Log "Creating md5 sum value for ${DIR}${iibLinuxOutZip}"
+    cd ${mqDefaultDir}
+    if [ ! -e ${iibLinuxOutZip} ]; then
+       Log "${iibLinuxOutZip} does not exist ..."
+       exit 1
+    fi
+    rm -rf ${DIR}/${iibLinuxOutZip}.md5
+    md5sum ${iibLinuxOutZip} >> ${iibLinuxOutZip}.md5
+    #
+    Log "${iibLinuxOutZip} file created"
+    #
+    if ! unzip -l ${DIR}/${iibLinuxOutZip}; then
+       Log "Error listing files in ${DIR}/${iibLinuxOutZip}"
+       exit 1
+    fi
+    #
+
+}
+
+
+###########################################################################
+#
+# Win IIB md5sum
+#
+###########################################################################
+function createWinIIB_MD5Sum() {
+    #
+    Log "Creating md5 sum value for ${DIR}${iibWinOutZip}"
+    cd ${mqDefaultDir}
+    if [ ! -e ${iibWinOutZip} ]; then
+       Log "${iibWinOutZip} does not exist ..."
+       exit 1
+    fi
+    rm -rf ${DIR}/${iibWinOutZip}.md5
+    md5sum ${iibWinOutZip} >> ${iibWinOutZip}.md5
+    #
+    Log "${iibWinOutZip} file created"
+    #
+    if ! unzip -l ${DIR}/${iibWinOutZip}; then
+       Log "Error listing files in ${DIR}/${iibWinOutZip}"
        exit 1
     fi
     #
@@ -229,8 +363,27 @@ function createMD5Sum() {
     # 
     cp ${INI_FILE_PATH} ${INI_FILE} 
     #
+    # MQ
+    #
     zipMQBinaries
-    createMD5Sum 
+    createMQ_MD5Sum
+    #
+    # Linux IIB
+    #
+    zipLinuxIIBBinaries
+    RC=$?
+    echo "RC=${RC}"
+    if [[ ${RC} == 0 ]]; then
+       createLinuxIIB_MD5Sum
+    fi 
+    #
+    # Windows IIB
+    #
+    zipWinIIBBinaries
+    RC=$?
+    if [[ ${RC} == 0 ]]; then
+       createWinIIB_MD5Sum
+    fi
     #
     Log "MQv8 unzip / installer complete - please check logs in ${LOG_FILE}"
     exit 0
