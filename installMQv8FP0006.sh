@@ -89,7 +89,7 @@ function installMQv8FP0006() {
         Log "Error installing MQSeriesSDK-U8006"
         exit 1
     fi
-    # Dont need sampeles in production
+    # Sampeles
     if ! rpm -ivh MQSeriesSamples-U8006*.rpm >> ${LOG_FILE} 2>>${LOG_FILE}; then
         Log "Error installing MQSeriesSamples-U8006"
         exit 1
