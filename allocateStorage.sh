@@ -123,7 +123,7 @@ function createVolGroup() {
     #
     Log "Creating volume group"
     if ! vgcreate lv_mqm /dev/${disk}1 >> ${LOG_FILE}; then
-        Log "Error creating Volume Group vgmqm"
+        Log "Error creating Volume Group lv_vgmqm"
         exit 1
     fi
     if ! lvcreate lv_mqm -L ${partSize1} --name qmgrs >> ${LOG_FILE}; then
