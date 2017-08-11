@@ -24,7 +24,7 @@ LOG_DIR=/var/log/mqInstaller
 INI_FILE=${LOG_DIR}/${prog}.ini
 LOG_FILE=${LOG_DIR}/${prog}.log.$(date +%Y%m%d_%H%M%S_%N)
 #
-## ./unzipMQv8_FP0006.sh MQv8FP0006.zip /home/mqadmin/ /home/mqadmin/ TSTQFD01
+## ./unzipMQv8_FP0006.sh MQv8FP0006.zip /home/mqadmin/MQv8/ /home/mqadmin/MQv8/ TSTQFD01
 # ./unzipMQv8_FP0006.sh ~/unzipMQv8_FP0006.ini TSTQFD01
 #
 ###################################################################################
@@ -92,6 +92,12 @@ function unzipMQv8File() {
     Log " QM = ${QM}"
     #
     if [[ ! -d ${mqTargetDir} ]];then
+        Log "Target directory ${mqTargetDir} does not exist ..."
+        Log "Target directory ${mqTargetDir} will be created ..."
+        mkdir -p ${mqTargetDir}
+    #    exit 1
+    fi
+    if [[ ! -d ${mqTargetDir} ]];then
         Log "Target directory ${mqTartgetDir} does not exist, select an existing directory"
         exit 1
     fi
@@ -146,7 +152,26 @@ function unzipMQv8File() {
     Log "Starting ${prog}.sh"
     setVariables "$@"
     #
-    Log "starting unzipMQvFile ...."
+    Log "Sleeping for 10 seconds ...."
+    loopCount=1
+    while [ ${loopCount} -le 6 ]
+    do
+        Log "Checking for file checkForMQZipFile.sh"
+        if [ ! -e checkForMQZipFile.sh ]; then
+            Log "mqCheckFile ... checkForMQZipFile.sh does not yet exist ...."
+            Log "Count ${loopCount} : sleeping for 10 seconds ..."
+            sleep 10
+        else
+            loopCount=10
+        fi
+        loopCount=$(( ${loopCount}+1 ))
+    done
+    #
+    if [ ! -e checkForMQZipFile.sh ]; then
+        Log "checkForMQZipFile.sh does not exit ... ending"
+        exit 1
+    fi
+    Log "Starting unzipMQvFile ..."
     /bin/bash checkForMQZipFile.sh MQv8FP0006.zip
     RC=$?
     if [ ${RC} != 0 ]; then

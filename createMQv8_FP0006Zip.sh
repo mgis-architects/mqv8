@@ -370,20 +370,19 @@ function createWinIIB_MD5Sum() {
     #
     # Linux IIB
     #
-    zipLinuxIIBBinaries
-    RC=$?
-    echo "RC=${RC}"
-    if [[ ${RC} == 0 ]]; then
-       createLinuxIIB_MD5Sum
-    fi 
+    ##zipLinuxIIBBinaries
+    ##RC=$?
+    ##if [[ ${RC} == 0 ]]; then
+    ##   createLinuxIIB_MD5Sum
+    ##fi 
     #
     # Windows IIB
     #
-    zipWinIIBBinaries
-    RC=$?
-    if [[ ${RC} == 0 ]]; then
-       createWinIIB_MD5Sum
-    fi
+    ##zipWinIIBBinaries
+    ##RC=$?
+    ##if [[ ${RC} == 0 ]]; then
+    ##   createWinIIB_MD5Sum
+    ##fi
     #
     Log "MQv8 unzip / installer complete - please check logs in ${LOG_FILE}"
     exit 0

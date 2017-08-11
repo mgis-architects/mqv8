@@ -211,7 +211,7 @@ function createCredentials() {
          fi
     fi
     #
-    # Add mqm user is missing
+    # Add mqm user if missing
     #
     if id ${mqUserId} >/dev/null 2>&1
     then
