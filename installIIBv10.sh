@@ -11,6 +11,9 @@
 ## -------  --------  ----------  ------------------------------------------------
 ## 0.1      06072017  mmo275      initial version
 ##
+##
+## sudo /bin/bash installIIBv10.sh TSTIPD01.ini
+##
 ###################################################################################
 
 prog=installIIBv10
@@ -42,7 +45,8 @@ function Log() {
 
 ###########################################################################
 #
-# Check for MQ ... as we need MQ
+# Check for MQ ... as we need it ... and check to see if the MQ installer
+#  ... script is still running
 #
 ###########################################################################
 function checkForMQ() {
@@ -56,6 +60,32 @@ function checkForMQ() {
         Log "MQ does not exist on this server, install MQ before installing IIB"
         exit 1
     fi
+    #
+    # Check to see if the MQ installer is running
+    #   if it is, wait until its finished ...
+    #
+    loopCount=1
+    while [ ${loopCount} -le 10 ]
+    do
+        Log "Checking for installation file unzipMQv8_FP0006 is still running"
+        MQProcess=`ps -ef | grep unzipMQv8_FP0006 | grep -v grep | wc -l`
+        if [[ ${MQProcess} != 0 ]]; then
+            Log "unzipMQv8_FP0006 process is still running ..."
+            Log "Count ${loopCount} : sleeping for 60 seconds ..."
+            sleep 60
+        else
+            loopCount=20
+        fi
+        loopCount=$(( ${loopCount}+1 ))
+    done
+    #
+    MQProcess=`ps -ef | grep unzipMQv8_FP0006 | grep -v grep | wc -l`
+    if [[ ${MQProcess} -ne 0 ]]; then
+        Log "unzipMQv8_FP0006 process is still running after 10 minutes ..."
+        exit 1
+    fi
+    #
+
 }
 
 ###########################################################################
@@ -63,24 +93,7 @@ function checkForMQ() {
 # Unzip the LinuxIIBv10.zip file
 #
 ###########################################################################
-function unzipLinuxIIBv10() {
-    #
-    eval `grep iibLinuxzipFile ${INI_FILE}`
-    eval `grep iibSourceDir ${INI_FILE}`
-    eval `grep iibTargetDir ${INI_FILE}`
-    #
-    if [ -z ${iibLinuxzipFile} ];then
-        Log "Invalid parameters;iibLinuxzipFile is missing "
-        exit 1
-    fi
-    if [ -z ${iibSourceDir} ];then
-        Log "Invalid parameters;iibSourceDir is missing "
-        exit 1
-    fi
-    if [ -z ${iibTargetDir} ];then
-        Log "Invalid parameters;iibTargetDir is missing "
-        exit 1
-    fi
+function unzipLinuxIIBv10_v1() {
     #
     if [[ -d ${iibTargetDir} ]];then
         Log "Target directory ${iibTargetDir} already exists ... deleting "
@@ -92,8 +105,8 @@ function unzipLinuxIIBv10() {
         mkdir -p ${iibTargetDir}
     #    exit 1
     fi
-    if [ ! -e ${iibSourceDir}/${iibLinuxzipFile} ];then
-        Log "MQ zip file ${iibSourceDir}/${iibLinuxzipFile} does not exist"
+    if [ ! -e ${iibSourceDir}${iibLinuxzipFile} ];then
+        Log "IIB zip file ${iibSourceDir}${iibLinuxzipFile} does not exist"
         exit 1
     fi
     #
@@ -101,10 +114,14 @@ function unzipLinuxIIBv10() {
         Log "Error changing directory to ${iibTargetDir}"
         exit 1
     fi
-    if ! unzip ${iibSourceDir}/${iibLinuxzipFile}; then
-        Log "Error unzipping file ${iibSourceDir}/${iibLinuxzipFile} into ${iibTartgetDir}"
+    if ! unzip ${iibSourceDir}${iibLinuxzipFile}; then
+        Log "Error unzipping file ${iibSourceDir}${iibLinuxzipFile} into ${iibTartgetDir}"
         exit 1
     fi
+    #
+    cp ${INI_FILE_PATH} ${INI_FILE}
+    #
+
 }
 
 ##########################################################################
@@ -114,15 +131,26 @@ function unzipLinuxIIBv10() {
 ###########################################################################
 function createIIBCredentials() {
     #
-    iibGroup=mqbrkrs
-    iibUser=iibadmin
-    mqGroup=mqm
-    mqUser=mqm
+    eval `grep iibGroup ${INI_FILE}`
+    eval `grep iibUser ${INI_FILE}`
+    eval `grep mqGroup ${INI_FILE}`
+    eval `grep mqUser ${INI_FILE}`
     #
-    eval `grep iibPasswd ${INI_FILE}`
-    if [ -z ${iibPasswd} ]; then
-       Log "Invalid parameter;iibPasswd missing from ${INI_FILE}"
-       exit 1
+    if [ -z ${iibGroup} ];then
+        Log "Invalid parameters;iibGroup is missing "
+        exit 1
+    fi
+    if [ -z ${iibUser} ];then
+        Log "Invalid parameters;iibUser is missing "
+        exit 1
+    fi
+    if [ -z ${mqGroup} ];then
+        Log "Invalid parameters;mqGroup is missing "
+        exit 1
+    fi
+    if [ -z ${mqUser} ];then
+        Log "Invalid parameters;mqUser is missing "
+        exit 1
     fi
     #
     eval `grep iibPasswd ${INI_FILE}`
@@ -155,14 +183,14 @@ function createIIBCredentials() {
               Log "Failed to create user ${iibUser}"
     #          exit 1
          fi
-         #
-         # Set the password
-         #
-         if ! echo ${mqPasswd} | passwd ${iibUser} --stdin
-         then
-              Log "Failed to set password for ${iibUser}"
-              exit 1
-         fi
+    fi
+    #
+    # Set the password
+    #
+    if ! echo ${iibPasswd} | passwd ${iibUser} --stdin
+    then
+        Log "Failed to set password for ${iibUser}"
+        exit 1
     fi
     #
     # Add iibadmin to mqm group and
@@ -181,65 +209,66 @@ function createIIBCredentials() {
 function installIIBv10() {
     #
     eval `grep iibLinuxzipFile ${INI_FILE}`
-    eval `grep iibSourceDir ${INI_FILE}`
-    eval `grep iibTargetDir ${INI_FILE}`
-    echo "${iibLinuxzipFile}"
-    echo "${iibSourceDir}"
-    echo "${iibTargetDir}"
-    #
-    eval `grep iibTargetDir ${INI_FILE}`
-    if [[ -z ${iibTargetDir} ]] ; then
-       log "Invalid parametere;mqTargetDir missing from ${INI_FILE}"
+    if [[ -z ${iibLinuxzipFile} ]] ; then
+       Log "Invalid parametere;iibLinuxzipFile missing from ${INI_FILE}"
        exit 1
     fi
+    eval `grep iibSourceDir ${INI_FILE}`
+    if [[ -z ${iibSourceDir} ]] ; then
+       Log "Invalid parametere;iibSourceDir missing from ${INI_FILE}"
+       exit 1
+    fi
+    eval `grep iibTargetDir ${INI_FILE}`
+    if [[ -z ${iibTargetDir} ]] ; then
+       Log "Invalid parametere;mqTargetDir missing from ${INI_FILE}"
+       exit 1
+    fi
+    eval `grep mqUser ${INI_FILE}`
+    if [[ -z ${mqUser} ]] ; then
+       Log "Invalid parametere;mqUserId missing from ${INI_FILE}"
+       exit 1
+    fi
+    eval `grep iibGroup ${INI_FILE}`
+    if [[ -z ${iibGroup} ]] ; then
+       Log "Invalid parametere;iibGroup missing from ${INI_FILE}"
+       exit 1
+    fi
+    #
     iibInstallFolder="/opt/IBM/"    
     #
-    echo "Creating iib installation folder"
-    echo "--------------------------------"
+    Log "Creating iib installation folder"
+    Log "--------------------------------"
     mkdir -p ${iibInstallFolder}
     #
-    if ! chown -R mqm:mqbrkrs ${iibInstallFolder}; then
-        echo "Error chaning owner for ${iibInstallFolder}"
+    if ! chown -R ${mqUser}:${iibGroup} ${iibInstallFolder}; then
+        Log "Error chaning owner for ${iibInstallFolder}"
         exit 1
     fi
     #
     cd ${iibInstallFolder}
-    pwd
-    ##
+    #
     if ! tar -xzvf ${iibTargetDir}10.0.0.9-IIB-LINUX64-DEVELOPER.tar.gz --exclude iib-10.0.0.9/tools; then
-        echo "Error installing IIBv10"
+        Log "Error installing IIBv10"
         exit 1
     fi
     #
     # accept the license as globally (all users)
     #
     if ! cd ${iibInstallFolder}iib-10.0.0.9; then
-        echo "Error changing to IIB folder ${iibInstallFolder}iib-10.0.0.9"
+        Log "Error changing to IIB folder ${iibInstallFolder}iib-10.0.0.9"
         exit 1
     fi
     if ! ./iib make registry global accept license silently; then
-        echo "Error accepting license"
+        Log "Error accepting license"
         exit 1
     fi
     #
     # amend the owner of the /var/mqsi folder that gets created after accepting the license
-    if ! chown -R mqm:mqbrkrs /var/mqsi; then
-        echo "Error updating owner for /var/mqsi"
+    if ! chown -R ${mqUser}:${iibGroup} /var/mqsi; then
+        Log "Error updating owner for /var/mqsi"
         exit 1
     fi
     
-    #
-    # Run mqconfig to ensure all is good before continuing
-    #
-    ##Log "/opt/mqm/bin/mqcongig ..."
-    ##su mqm -c "/opt/mqm/bin/mqconfig" >> ${LOG_FILE}
-    ##FAILED=$(su mqm -c "/opt/mqm/bin/mqconfig" | grep FAIL | wc -l)
-    ##if [ "$FAILED" -ne "0" ]
-    ##then
-    ##     Log "System parameters are in error"
-    ##     exit 1
-    ##fi
-
 }
 
 ###########################################################################
@@ -250,34 +279,44 @@ function installIIBv10() {
 function createBroker() {
     #
     #
-    # Update the mqm profile to enable the MQ and commands ...
+    # Update the mqm profile to enable the MQ and IIB commands ...
     #
-    mqmDir=/home/iibadmin
-    brokerName=TSTIFD01
-    iibMQServer=TSTQFD01
-    iibGroup=mqbrkrs
+    eval `grep brokerName ${INI_FILE}`
+    if [[ -z ${brokerName} ]] ; then
+       Log "Invalid parameter;brokerName missing from ${INI_FILE}"
+       exit 1
+    fi
+    eval `grep iibMQServer ${INI_FILE}`
+    if [[ -z ${iibMQServer} ]] ; then
+       Log "Invalid parameter;iibMQServer missing from ${INI_FILE}"
+       exit 1
+    fi
+    eval `grep iibUser ${INI_FILE}`
+    if [[ -z ${iibUser} ]] ; then
+       Log "Invalid parameter;iibUser missing from ${INI_FILE}"
+       exit 1
+    fi
     #
-    pathLine=$(cat ${mqmDir}/.bash_profile | grep PATH= -n)
+    iibDir=/home/${iibUser}
+    pathLine=$(cat ${iibDir}/.bash_profile | grep PATH= -n)
     if [ -z ${pathLine} ]; then
-        echo "Error 'Path=' variable not found in ${mqmDir}/.bash_profile"
+        Log "Error 'Path=' variable not found in ${iibDir}/.bash_profile"
         exit 1
     fi
     lineNo=$(echo ${pathLine} | awk -F ":" '{print $1}')
     lineNo=$( expr ${lineNo} - 1 )
-    sed -i "${lineNo}i# Auto inserted by installIIBv10.sh script\n. /opt/mqm/bin/setmqenv -s\n. /opt/IBM/iib-10.0.0.9/server/bin/mqsiprofile " ${mqmDir}/.bash_profile
+    sed -i "${lineNo}i# Auto inserted by installIIBv10.sh script\n. /opt/mqm/bin/setmqenv -s\n. /opt/IBM/iib-10.0.0.9/server/bin/mqsiprofile " ${iibDir}/.bash_profile
     #
-    if ! su - iibadmin -c "mqsicreatebroker ${brokerName} -q ${iibMQServer}"; then
-        echo "Error creating broker ${brokerName}"
+    if ! su - ${iibUser} -c ". /opt/IBM/iib-10.0.0.9/server/bin/mqsiprofile; mqsicreatebroker ${brokerName} -q ${iibMQServer}"; then
+        Log "Error creating broker ${brokerName}"
     #    exit 1
     fi
     #
-    if ! su - iibadmin -c "cd /opt/IBM/iib-10.0.0.9/server/sample/wmq; ./iib_createqueues.sh ${iibMQServer} ${iibGroup}"; then
-        echo "Error changing to IIB folder /opt/IBM/iib-10.0.0.9/server/sample/wmq"
-        echo "Error updating message broker (${brokerName}) queue manager (${iibMQServer}) with MQ configurations"
-        exit 1
+    if ! su - ${iibUser} -c " cd /opt/IBM/iib-10.0.0.9/server/sample/wmq; ./iib_createqueues.sh ${iibMQServer} ${iibGroup}"; then
+        Log "Error changing to IIB folder /opt/IBM/iib-10.0.0.9/server/sample/wmq"
+        Log "Error updating message broker (${brokerName}) queue manager (${iibMQServer}) with MQ configurations"
+    #    exit 1
     fi
-
-
 
 }
 
@@ -297,27 +336,30 @@ function createBroker() {
          exit 1
     fi
     #
-    INI_FILE_PATH=$1
+    iibLinuxzipFile=LinuxIIBv10.zip
+    iibSourceDir=/home/mqadmin/
+    iibTargetDir=/home/mqadmin/iibv10/
+    INI_FILE_PATH=${iibTargetDir}parameters/$1
     if [[ -z ${INI_FILE_PATH} ]]; then
         Log "${prog} called with null parameter, should be the path to the driving ini_file"
         exit 1
     fi
-    if [[ ! -f ${INI_FILE_PATH} ]]; then
-        Log "${prog} ini_file cannot be found"
-        exit 1
-    fi
-    if ! mkdir -p ${LOG_DIR}; then
-        Log "${prog} cant make ${LOG_DIR}"
-        exit 1
-    fi
+    ##if [[ ! -f ${INI_FILE_PATH} ]]; then
+    ##    Log "${prog} ini_file cannot be found"
+    ##    exit 1
+    ##fi
+    ##if ! mkdir -p ${LOG_DIR}; then
+    ##    Log "${prog} cant make ${LOG_DIR}"
+    ##    exit 1
+    ##fi
     #
-    cp ${INI_FILE_PATH} ${INI_FILE}
+    ##cp ${INI_FILE_PATH} ${INI_FILE}
     #
-    ##checkForMQ
-    ##unzipLinuxIIBv10
-    ##createIIBCredentials
+    checkForMQ
+    unzipLinuxIIBv10_v1
+    createIIBCredentials
     #
-    #installIIBv10
+    installIIBv10
     createBroker
     #
     Log "IIB installation complete - please check logs in ${LOG_FILE}"

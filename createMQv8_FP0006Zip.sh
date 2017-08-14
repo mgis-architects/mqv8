@@ -103,6 +103,12 @@ function zipMQBinaries() {
         Log "mqOutZip is missing from ${INI_FILE}"
         exit 1
     fi
+    eval `grep BusinessFunction ${INI_FILE}`
+    if [[ -z ${BusinessFunction} ]]; then
+        Log "BusinessFunction is missing from ${INI_FILE}"
+        exit 1
+    fi
+
     #
     Log "Zip MQ binary files ...."
     Log "MQ source DIR = ${mqSourceDir}"
@@ -202,12 +208,32 @@ function zipLinuxIIBBinaries() {
         exit 1
     fi
     #
+    eval `grep BusinessFunction ${INI_FILE}`
+    if [[ -z ${BusinessFunction} ]]; then
+        Log "BusinessFunction is missing from ${INI_FILE}"
+        exit 1
+    fi
+    #
+    Log "Checking if a previous version of ${iibLinuxOutZip} exists ..."
+    if [ -e ${DIR}/${iibLinuxOutZip} ]; then
+       Log "${iibLinuxOutZip} exists and will be removed ..."
+       rm -r ${DIR}/${iibLinuxOutZip}
+       Log "${iibLinuxOutZip} deleted"
+    fi
+    #
     cd ${mqSourceDir}
     if ! zip -9 ${DIR}/${iibLinuxOutZip} ${iibLinuxFile}; then
        Log "Error adding ${iibLinuxFile} file to zip file ${iibLinuxOutZip}"
        exit 1
     fi
     #
+    cd ${mqDefaultDir}
+    if ! zip -9 -u ${DIR}/${iibLinuxOutZip} ./parameters/${BusinessFunction}IP*.ini; then
+        Log "Error adding ./parameters/${BusinessFunction}IP*.ini files to zip file ${iibLinuxOutZip}"
+        exit 1
+    fi
+    #
+
 }
 
 ###########################################################################
@@ -240,6 +266,13 @@ function zipWinIIBBinaries() {
     if [ ! -d ${mqSourceDir} ]; then
         Log "Source directory ${mqSourceDir} does not exist."
         exit 1
+    fi
+    #
+    Log "Checking if a previous version of ${iibWinOutZip} exists ..."
+    if [ -e ${DIR}/${iibWinOutZip} ]; then
+       Log "${iibWinOutZip} exists and will be removed ..."
+       rm -r ${DIR}/${iibWinOutZip}
+       Log "${iibWinOutZip} deleted"
     fi
     #
     cd ${mqSourceDir}
@@ -366,24 +399,27 @@ function createWinIIB_MD5Sum() {
     # MQ
     #
     zipMQBinaries
-    createMQ_MD5Sum
+    RC=$?
+    if [[ ${RC} == 0 ]]; then
+       createMQ_MD5Sum
+    fi
     #
     # Linux IIB
     #
-    ##zipLinuxIIBBinaries
-    ##RC=$?
-    ##if [[ ${RC} == 0 ]]; then
-    ##   createLinuxIIB_MD5Sum
-    ##fi 
+    zipLinuxIIBBinaries
+    RC=$?
+    if [[ ${RC} == 0 ]]; then
+       createLinuxIIB_MD5Sum
+    fi 
     #
     # Windows IIB
     #
-    ##zipWinIIBBinaries
-    ##RC=$?
-    ##if [[ ${RC} == 0 ]]; then
-    ##   createWinIIB_MD5Sum
-    ##fi
+    zipWinIIBBinaries
+    RC=$?
+    if [[ ${RC} == 0 ]]; then
+       createWinIIB_MD5Sum
+    fi
     #
-    Log "MQv8 unzip / installer complete - please check logs in ${LOG_FILE}"
+    Log "MQv8 / IIB / Windows Admin Server zip complete - please check logs in ${LOG_FILE}"
     exit 0
 
