@@ -115,7 +115,9 @@ function unzipLinuxIIBv10() {
 function createIIBCredentials() {
     #
     iibGroup=mqbrkrs
-    iibAdmin=iibadmin
+    iibUser=iibadmin
+    mqGroup=mqm
+    mqUser=mqm
     #
     eval `grep iibPasswd ${INI_FILE}`
     if [ -z ${iibPasswd} ]; then
@@ -143,22 +145,22 @@ function createIIBCredentials() {
     #
     # Add iibadmin user if missing
     #
-    if id ${iibAdmin} >/dev/null 2>&1
+    if id ${iibUser} >/dev/null 2>&1
     then
-         Log "${iibAdmin} user exists"
+         Log "${iibUser} user exists"
     else
-         Log "${iibAdmin} user does not exit - creating ${iibAdmin} user"
-         if ! useradd -g ${iibGroup} ${iibAdmin}
+         Log "${iibUser} user does not exit - creating ${iibUser} user"
+         if ! useradd -g ${iibGroup} ${iibUser}
          then
-              Log "Failed to create user ${iibAdmin}"
+              Log "Failed to create user ${iibUser}"
     #          exit 1
          fi
          #
          # Set the password
          #
-         if ! echo ${mqPasswd} | passwd ${iibAdmin} --stdin
+         if ! echo ${mqPasswd} | passwd ${iibUser} --stdin
          then
-              Log "Failed to set password for ${iibAdmin}"
+              Log "Failed to set password for ${iibUser}"
               exit 1
          fi
     fi
@@ -166,8 +168,8 @@ function createIIBCredentials() {
     # Add iibadmin to mqm group and
     #  ... mqm to mqbrkrs
     #
-    usermod -a -G mqbrkrs mqm
-    usermod -a -G mqm iibadmin
+    usermod -a -G ${iibGroup} ${mqUser}
+    usermod -a -G ${mqGroup} ${iibUser}
     #
 }
 
@@ -190,7 +192,7 @@ function installIIBv10() {
        log "Invalid parametere;mqTargetDir missing from ${INI_FILE}"
        exit 1
     fi
-    iibInstallFolder="/opt/IBM"    
+    iibInstallFolder="/opt/IBM/"    
     #
     echo "Creating iib installation folder"
     echo "--------------------------------"
@@ -211,8 +213,8 @@ function installIIBv10() {
     #
     # accept the license as globally (all users)
     #
-    if ! cd /opt/IBM/iib-10.0.0.9; then
-        echo "Error changing to IIB folder /opt/IBM/iib-10.0.0.9"
+    if ! cd ${iibInstallFolder}iib-10.0.0.9; then
+        echo "Error changing to IIB folder ${iibInstallFolder}iib-10.0.0.9"
         exit 1
     fi
     if ! ./iib make registry global accept license silently; then
@@ -251,6 +253,10 @@ function createBroker() {
     # Update the mqm profile to enable the MQ and commands ...
     #
     mqmDir=/home/iibadmin
+    brokerName=TSTIFD01
+    iibMQServer=TSTQFD01
+    iibGroup=mqbrkrs
+    #
     pathLine=$(cat ${mqmDir}/.bash_profile | grep PATH= -n)
     if [ -z ${pathLine} ]; then
         echo "Error 'Path=' variable not found in ${mqmDir}/.bash_profile"
@@ -260,14 +266,14 @@ function createBroker() {
     lineNo=$( expr ${lineNo} - 1 )
     sed -i "${lineNo}i# Auto inserted by installIIBv10.sh script\n. /opt/mqm/bin/setmqenv -s\n. /opt/IBM/iib-10.0.0.9/server/bin/mqsiprofile " ${mqmDir}/.bash_profile
     #
-    if ! su - iibadmin -c "mqsicreatebroker TSTIFD01 -q TSTQFD01"; then
-        echo "Error creating broker TSTIFD01"
+    if ! su - iibadmin -c "mqsicreatebroker ${brokerName} -q ${iibMQServer}"; then
+        echo "Error creating broker ${brokerName}"
     #    exit 1
     fi
     #
-    if ! su - iibadmin -c "cd /opt/IBM/iib-10.0.0.9/server/sample/wmq; ./iib_createqueues.sh TSTQFD01 mqbrkrs"; then
+    if ! su - iibadmin -c "cd /opt/IBM/iib-10.0.0.9/server/sample/wmq; ./iib_createqueues.sh ${iibMQServer} ${iibGroup}"; then
         echo "Error changing to IIB folder /opt/IBM/iib-10.0.0.9/server/sample/wmq"
-        echo "Error updating message broker (TSTIFD01) queue manager (TSTQFD01) with MQ configurations"
+        echo "Error updating message broker (${brokerName}) queue manager (${iibMQServer}) with MQ configurations"
         exit 1
     fi
 
